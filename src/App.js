@@ -6,6 +6,7 @@ import abi from './utils/WavePortal.json';
 export default function App() {
 
   const [currentAccount, setCurrentAccount] = useState("");
+  const [messageStr, setMessageStr] = useState("");
   const [allWaves, setAllWaves] = useState([]);
   const contractAddress = "0xf9B0D94F1145B9e37285C6F86Ba3Bd7F5C8E9dDd";
   const contractABI = abi.abi;
@@ -149,7 +150,8 @@ export default function App() {
         /*
         * Execute the actual wave from your smart contract
         */
-        const waveTxn = await wavePortalContract.wave("this is a message")
+        const waveTxn = await wavePortalContract.wave(messageStr, { gasLimit: 300000 });
+
         console.log("Mining...", waveTxn.hash);
 
         await waveTxn.wait();
@@ -177,6 +179,10 @@ export default function App() {
         I am danicuki and I have a YouTube Channel? Isn't it awesome? Connect your Ethereum wallet and wave at me!
         </div>
 
+        <p>
+          Write your message here: &nbsp;
+          <input type="text" value={messageStr} onChange={(e) => setMessageStr(e.target.value)} />
+        </p>
         <button className="waveButton" onClick={wave}>
           Wave at Me
         </button>
