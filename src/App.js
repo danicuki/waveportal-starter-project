@@ -6,10 +6,52 @@ import abi from './utils/WavePortal.json';
 export default function App() {
 
   const [currentAccount, setCurrentAccount] = useState("");
-  const contractAddress = "0x7CeF6bb76F5a19303BdC849A383c82b6f28f4728";
+  const [allWaves, setAllWaves] = useState([]);
+  const contractAddress = "0x1fa26FCEf6247517E80D93DC41AE9C3022d15487";
   const contractABI = abi.abi;
 
+
+
   useEffect(() => {
+    const getAllWaves = async () => {
+      try {
+        const { ethereum } = window;
+        if (ethereum) {
+          const provider = new ethers.providers.Web3Provider(ethereum);
+          const signer = provider.getSigner();
+          const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
+  
+          /*
+           * Call the getAllWaves method from your Smart Contract
+           */
+          const waves = await wavePortalContract.getAllWaves();
+          
+  
+          /*
+           * We only need address, timestamp, and message in our UI so let's
+           * pick those out
+           */
+          let wavesCleaned = [];
+          waves.forEach(wave => {
+            wavesCleaned.push({
+              address: wave.waver,
+              timestamp: new Date(wave.timestamp * 1000),
+              message: wave.message
+            });
+          });
+  
+          /*
+           * Store our data in React State
+           */
+          setAllWaves(wavesCleaned);
+        } else {
+          console.log("Ethereum object doesn't exist!")
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
     const checkIfWalletIsConnected = async () => {
       try {
         const { ethereum } = window;
@@ -30,6 +72,7 @@ export default function App() {
           const account = accounts[0];
           console.log("Found an authorized account:", account);
           setCurrentAccount(account)
+          getAllWaves();
         } else {
           console.log("No authorized account found")
         }
@@ -39,7 +82,7 @@ export default function App() {
     }
 
     checkIfWalletIsConnected();
-  })
+  }, [contractABI]);
 
 
   /**
@@ -63,8 +106,6 @@ export default function App() {
     }
   }
 
-
-
   const wave = async () => {
     try {
       const { ethereum } = window;
@@ -80,7 +121,7 @@ export default function App() {
         /*
         * Execute the actual wave from your smart contract
         */
-        const waveTxn = await wavePortalContract.wave();
+        const waveTxn = await wavePortalContract.wave("this is a message")
         console.log("Mining...", waveTxn.hash);
 
         await waveTxn.wait();
@@ -119,6 +160,15 @@ export default function App() {
             Connect Wallet
           </button>
         )}
+
+        {allWaves.map((wave, index) => {
+          return (
+            <div key={index} style={{ backgroundColor: "OldLace", marginTop: "16px", padding: "8px" }}>
+              <div>Address: {wave.address}</div>
+              <div>Time: {wave.timestamp.toString()}</div>
+              <div>Message: {wave.message}</div>
+            </div>)
+        })}
       </div>
     </div>
   );
