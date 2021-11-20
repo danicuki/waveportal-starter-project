@@ -1,38 +1,45 @@
 import React, { useEffect, useState } from "react";
-// import { ethers } from "ethers";
+import { ethers } from "ethers";
 import './App.css';
+import abi from './utils/WavePortal.json';
 
 export default function App() {
 
   const [currentAccount, setCurrentAccount] = useState("");
-  
-  const checkIfWalletIsConnected = async () => {
-    try {
-      const { ethereum } = window;
-      
-      if (!ethereum) {
-        console.log("Make sure you have metamask!");
-        return;
-      } else {
-        console.log("We have the ethereum object", ethereum);
+  const contractAddress = "0x7CeF6bb76F5a19303BdC849A383c82b6f28f4728";
+  const contractABI = abi.abi;
+
+  useEffect(() => {
+    const checkIfWalletIsConnected = async () => {
+      try {
+        const { ethereum } = window;
+        
+        if (!ethereum) {
+          console.log("Make sure you have metamask!");
+          return;
+        } else {
+          console.log("We have the ethereum object", ethereum);
+        }
+        
+        /*
+        * Check if we're authorized to access the user's wallet
+        */
+        const accounts = await ethereum.request({ method: 'eth_accounts' });
+        
+        if (accounts.length !== 0) {
+          const account = accounts[0];
+          console.log("Found an authorized account:", account);
+          setCurrentAccount(account)
+        } else {
+          console.log("No authorized account found")
+        }
+      } catch (error) {
+        console.log(error);
       }
-      
-      /*
-      * Check if we're authorized to access the user's wallet
-      */
-      const accounts = await ethereum.request({ method: 'eth_accounts' });
-      
-      if (accounts.length !== 0) {
-        const account = accounts[0];
-        console.log("Found an authorized account:", account);
-        setCurrentAccount(account)
-      } else {
-        console.log("No authorized account found")
-      }
-    } catch (error) {
-      console.log(error);
     }
-  }
+
+    checkIfWalletIsConnected();
+  })
 
 
   /**
@@ -58,9 +65,36 @@ export default function App() {
 
 
 
-  const wave = () => {
-    
-  }
+  const wave = async () => {
+    try {
+      const { ethereum } = window;
+
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
+
+        let count = await wavePortalContract.getTotalWaves();
+        console.log("Retrieved total wave count...", count.toNumber());
+
+        /*
+        * Execute the actual wave from your smart contract
+        */
+        const waveTxn = await wavePortalContract.wave();
+        console.log("Mining...", waveTxn.hash);
+
+        await waveTxn.wait();
+        console.log("Mined -- ", waveTxn.hash);
+
+        count = await wavePortalContract.getTotalWaves();
+        console.log("Retrieved total wave count...", count.toNumber());        
+      } else {
+        console.log("Ethereum object doesn't exist!");
+      }
+    } catch (error) {
+      console.log(error)
+    }
+}
   
   return (
     <div className="mainContainer">
